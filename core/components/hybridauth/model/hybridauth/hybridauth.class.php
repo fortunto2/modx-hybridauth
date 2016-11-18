@@ -277,8 +277,43 @@ class HybridAuth {
 					else {
 						$response = $this->runProcessor('web/user/create', $arr);
 						if ($response->isError()) {
-							$this->modx->log(modX::LOG_LEVEL_ERROR, '[HybridAuth] Unable to create user ' . print_r($arr, 1) . '. Message: ' . implode(', ', $response->getAllErrors()));
-							$_SESSION['HA']['error'] = implode(', ', $response->getAllErrors());
+
+
+									/* add new provider when email exist  *************************************/
+
+											/* Get user Email */
+											$getProfileByEmail = $this->modx->getObject('modUserProfile', array(
+													'email' => $arr['email'],
+											));
+
+											if ($getProfileByEmail) {
+												 $internalKey = $getProfileByEmail->get('internalKey');
+												 $profile['internalKey'] = $internalKey;
+
+												 // $this->modx->log(modX::LOG_LEVEL_ERROR, '[test]' . print_r($profile,1));
+												 $response = $this->runProcessor('web/service/create', $profile);
+
+												 if ($response->isError()) {
+													 $this->modx->log(modX::LOG_LEVEL_ERROR, '[HybridAuth] unable to save service profile for user ' . $uid . '. Message: ' . implode(', ', $response->getAllErrors()));
+													 $_SESSION['HA']['error'] = implode(', ', $response->getAllErrors());
+												 }
+
+												 if ($getUser = $this->modx->getObject('modUser', $internalKey)) {
+														 $login_data = array(
+															'username' => $getUser->get('username'),
+															'password' => md5(rand()),
+															'rememberme' => $this->config['rememberme']
+														);
+													}
+
+
+											}
+											else {
+												$this->modx->log(modX::LOG_LEVEL_ERROR, '[HybridAuth] Unable to create user ' . print_r($arr, 1) . '. Message: ' . implode(', ', $response->getAllErrors()));
+												$_SESSION['HA']['error'] = implode(', ', $response->getAllErrors());
+
+											}
+
 						}
 						else {
 							$login_data = array(
